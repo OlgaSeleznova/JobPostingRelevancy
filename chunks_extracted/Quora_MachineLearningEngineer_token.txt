@@ -1,0 +1,353 @@
+Machine Learning Engineer - Recommendation System (Remote)
+
+Remote) Location Remote - Multiple Locations, United States
+
+ United States, Canada, Ireland, & 13 other
+
+ 13 other countries Type Full time Department Engineering Overview (/
+
+ Overview (/quora/11551986-0
+
+-0c31-4e19-88
+
+-8872-483549d31857
+
+31857) Application (/quora/1155
+
+11551986-0c31-4e
+
+4e19-8872-483549
+
+3549d31857/application) [ Qu
+
+ [ Quora is a "remote-first"
+
+first" company . This position can be performed remotely
+
+ performed remotely from multiple countries around the world. Please
+
+. Please visit careers.quora.com/
+
+com/eligible-countries for details regarding employment
+
+ regarding employment eligibility by country.] About Quora:
+
+ora: Quora’s mission is to
+
+ is to grow and share the world’s
+
+�s knowledge. To do so, we have
+
+ we have two knowledge sharing products: Quora (
+
+ora (http://quora.com) :
+
+) : a global knowledge sharing platform with over 400
+
+ over 400M monthly unique visitors, bringing people together
+
+ people together to share insights on various topics and providing
+
+ and providing a unique platform to learn and connect with
+
+ connect with others. Poe (http://poe
+
+poe.com) : a platform providing millions
+
+ providing millions of global users with one place to chat
+
+ to chat, explore and build with a wide variety
+
+ wide variety of AI language models (bots), including
+
+), including GPT-4, Claude 3,
+
+ 3, Gemini Pro, DALL-E 3
+
+E 3 and more. As AI capabilities rapidly advance
+
+ rapidly advance, Poe provides a single platform to instantly
+
+ to instantly integrate and utilize these new models. Behind
+
+. Behind these products are passionate, collaborative, and
+
+, and high-performing global teams. We have
+
+ We have a culture rooted in transparency, idea-
+
+ idea-sharing, and experimentation that allows us to
+
+ us to celebrate success and grow together through meaningful work
+
+ meaningful work. Join us on this journey to create
+
+ to create a positive impact and make a significant change
+
+ significant change in the world. About the Team and
+
+ Team and Role: Our Recommender System team works
+
+ team works on challenging problems every day. Our Machine
+
+ Our Machine Learning Engineers are tasked with optimizing the content
+
+ the content distribution system at Quora. The team
+
+ The team covers the entire Machine Learning lifecycle from
+
+ecycle from end-to-end, including feed
+
+ including feed generation, notifications, digest emails, and
+
+, and requests to answer. Engrained in our
+
+ in our culture is the desire to constantly learn and
+
+ learn and improve, and our engineers are encouraged to
+
+ encouraged to think big and experiment with new ideas.
+
+ ideas. Using continuous deployment, we quickly see our
+
+ see our changes in the product and make fast iterations
+
+ fast iterations. Our engineers focus on creating polished products
+
+ polished products and writing high-quality code by designing
+
+ by designing APIs and abstractions that are extensible
+
+ extensible and maintainable. As a remote-
+
+ remote-first company, our engineers have a high
+
+ a high degree of flexibility and autonomy. Everyone on
+
+ Everyone on the engineering team has a huge impact on
+
+ impact on our product and our company. Since we
+
+ Since we first launched our content distribution platform, we
+
+, we've grown to support millions of users who
+
+ users who are engaging with over 400 million+ monthly
+
++ monthly unique visitors on Quora. Our journey
+
+ Our journey is just beginning as we continue to build
+
+ to build new products from the ground up and tackle
+
+ and tackle exciting challenges at scale. Today, we
+
+, we're working on a broad range of areas
+
+ of areas to grow our content product to drive more
+
+ drive more value to our users. As a member
+
+ a member of the Recommender System team, you
+
+, you will have a chance to work with a
+
+ with a diverse and talented global team of engineers and
+
+ engineers and collaborate closely with cross-functional partners to
+
+ partners to help users get the right content at the
+
+ at the right time and build a stronger connection between
+
+ connection between Quora users and its knowledge base.
+
+ base. Responsibilities: Improve our existing machine learning
+
+ machine learning systems using your core coding skills and ML
+
+ and ML knowledge Take end to end ownership of machine
+
+ of machine learning systems - from data pipelines, feature
+
+, feature engineering, candidate extraction, model training,
+
+ training, as well as integration into our production systems
+
+ production systems Apply state-of-the-art
+
+-art machine learning algorithms at scale and serving for
+
+ serving for next-generation ad recommendation systems that directly
+
+ that directly impact the company’s top line
+
+ top line metrics Collaborate with ML platform and product
+
+ and product engineers to build scalable and efficient machine learning
+
+ machine learning systems in the production environment Improve the design
+
+ the design of recommender model Work with product and
+
+ product and business teams on new innovative features for recomm
+
+ for recommender systems to optimize user and advertiser
+
+ advertiser performance Identify new opportunities to apply machine
+
+ apply machine learning to different parts of the Ads product
+
+ Ads product to drive value for our users and advertisers
+
+ and advertisers Minimum Requirements: Ability to be available for
+
+ available for meetings and impromptu communication during Quora
+
+ Quora's “ coordination hours " (Mon
+
+ (Mon-Fri: 9am-3pm
+
+3pm Pacific Time) 3+ years of professional
+
+ of professional software development experience in machine learning Previous experience
+
+ Previous experience building large scale ranking/recommendation
+
+endation systems Good understanding of mathematical foundations of machine
+
+ of machine learning algorithms Highly proficient coding ability writing Python
+
+ writing Python, C++ or Golang code BS
+
+ code BS, MS or PhD in Computer Science,
+
+ Science, Engineering or a related technical field Preferred Requirements
+
+ Preferred Requirements: Experience with leading large-scale multi
+
+scale multi-engineer projects Flexible and positive
+
+ and positive team player with outstanding interpersonal skills Passion for
+
+ Passion for Quora's mission and goals At Qu
+
+ At Quora, we value diversity and inclus
+
+ inclusivity and welcome individuals from all backgrounds,
+
+ backgrounds, including marginalized or underrepresented groups in tech
+
+ in tech, to apply for our job openings.
+
+ openings. We encourage all candidates who share a passion
+
+ a passion for growing the world’s knowledge
+
+s knowledge, even those who may not strictly meet
+
+ strictly meet all the preferred requirements, to apply,
+
+ apply, as we know that a diverse range of
+
+ range of perspectives can have a significant impact on our
+
+ on our products and our culture. Additional Information:
+
+ Information: We are accepting applications on an ongoing basis
+
+ ongoing basis. Quora offers a wide range of
+
+ range of benefits including medical/dental/vision
+
+/vision coverage, equity refreshers, remote work
+
+ remote work reimbursement, paid time off, employee assistance
+
+ employee assistance programs, and more. Benefits are country
+
+ are country-specific and may vary. For more
+
+ For more information on benefits, visit this link:
+
+ link: https://www.careers.qu
+
+.quora.com/benefits (https
+
+ (https://www.careers.quora
+
+quora.com/benefits) There are
+
+ There are many factors that will determine the starting pay
+
+ starting pay, including but not limited to experience,
+
+ experience, location, education, and business needs.
+
+ needs. US candidates only: For US based
+
+ US based applicants, the salary range is $147
+
+ $147,200 - $275,750 USD
+
+750 USD + equity + benefits. Canada candidates only
+
+ candidates only: For Canada based applicants, the
+
+, the salary range is $151,270
+
+,270 - $283,374 CAD + equity
+
+ + equity + benefits. We are an equal opportunity
+
+ equal opportunity employer and value diversity at our company.
+
+ company. We do not discriminate on the basis of
+
+ basis of race, religion, color, national origin
+
+ national origin, gender, sexual orientation, age,
+
+ age, marital status, veteran status, or disability
+
+ or disability status. Job Applicant Privacy Notice: https
+
+: https://www.careers.quora
+
+quora.com/applicant-priv
+
+-privacy-notice (https://www.
+
+www.careers.quora.com/
+
+com/applicant-privacy-notice
+
+-notice) #LI-AR1 #LI
+
+ #LI-REMOTE Apply for this Job This
+
+ Job This site is protected by reCAPTCHA
+
+TCHA and the Google Privacy Policy (https://
+
+https://policies.google.com/
+
+com/privacy) and Terms of Service (
+
+ Service (https://policies.google.
+
+google.com/terms) apply. Powered by
+
+ Powered by Ashby Privacy Policy (https://www
+
+://www.ashbyhq.com/
+
+com/privacy) Security (https://www
+
+://www.ashbyhq.com/
+
+com/security) Vulnerability Disclosure (https://
+
+https://www.ashbyhq.com
+
+.com/disclosure)
