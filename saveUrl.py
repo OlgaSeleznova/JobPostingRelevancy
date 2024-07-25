@@ -68,6 +68,11 @@ def fileExists(fileName):
     else:
         return fileName
 
+def save_data(cont, fname):
+        outFile = fileExists(fname)
+        f = open(outFile, "w")
+        f.write(cont)
+        f.close()
 
 def main(url, outDir):
     html, headers = load_html(url)
@@ -76,16 +81,7 @@ def main(url, outDir):
         content = docs[ind].page_content
         print(f"Content length is {len(content)}")
         fileName = os.path.join(outDir,headers[ind]+".txt")
-        outFile = fileExists(fileName)
-        f = open(outFile, "w")
-        f.write(content)
-        f.close()
-
-    # chunkSem = semantic_split_docs(content)
-    # chunksChar = char_splitter(content)
-    # chunkTok = token_splitter(content)
-    # chunkSpacy = spacy_splitter(content)
-    # chunkSentTr = token_sent_trans(content)
+        save_data(content, fileName)
 
 
 

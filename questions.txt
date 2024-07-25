@@ -1,0 +1,6 @@
+What level of education is required? 
+How many years of working experience is required? 
+Experience in which fields is required?
+Which programming languages should a candidate know?
+Experience working with wich libraries is required? 
+Understanding of which concepts is required? 
