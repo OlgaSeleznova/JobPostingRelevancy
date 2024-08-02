@@ -7,20 +7,6 @@ from langchain_text_splitters import HTMLSectionSplitter
 from langchain_community.document_loaders import AsyncChromiumLoader
 import re
 from langchain_community.document_transformers import BeautifulSoupTransformer
-from langchain_experimental.text_splitter import SemanticChunker
-from langchain_openai.embeddings import OpenAIEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_text_splitters import CharacterTextSplitter
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_text_splitters import SentenceTransformersTokenTextSplitter
-from langchain_text_splitters import SpacyTextSplitter
-
-# import logging
-# import sys
-
-# logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-# logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
-
 
 
 def main_llamaindex(url):
@@ -88,7 +74,11 @@ def main(url, outDir):
 if __name__=="__main__":
     main(
         url=[
-            # "https://www.accenture.com/ca-en/careers/jobdetails?id=R00218148_en&title=Responsible%20AI%20Engineer%20SpecialistD",
-             "https://jobs.ashbyhq.com/quora/71e1b41f-ce2f-4144-a3b4-00c7d40f4e44?locationId=d03c8cce-ce51-4c89-9d06-ad8597402fc0"],
+            "https://corp.flipp.com/careers/?gh_jid=5952833",
+            "https://careers.spglobal.com/jobs/298823?lang=en-us",
+            "https://www.grammarly.com/jobs/engineering/researcher-strategic-research?gh_jid=5829498",
+            "https://www.grammarly.com/jobs/engineering/machine-learning-engineer-responsible-ai?gh_jid=5932771",
+            "https://job-boards.greenhouse.io/gitlab/jobs/7522926002"
+        ],
         outDir = "posting/"
     )
