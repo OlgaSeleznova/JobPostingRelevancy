@@ -23,31 +23,17 @@ def load_html(url_:list) -> list:
     docs_transf = bs_transformer.transform_documents(html)
     return docs_transf
 
-
 def vector_search_chroma(documents, query, k)->list:
     embedding_func = OpenAIEmbeddings()
     db = Chroma.from_documents(documents, embedding_func)
-    docs = db.similarity_search(query[0],k=k)
-    if len(docs)>1:
-        return [doc.page_content for doc in docs]
-    else:
-        return docs[0].page_content
-    # return vectordb.as_retriever()
+    docs = db.similarity_search(''.join(query),k=k)
+    return [doc.page_content for doc in docs]
 
-def vector_search_faiss(documents, query, k)->list:
-    embedding_func = OpenAIEmbeddings()
-    db = FAISS.from_documents(documents, embedding_func)
-    docs = db.similarity_search(query[0],k=k)
-    if len(docs)>1:
-        return [doc.page_content for doc in docs]
-    else:
-        return docs[0].page_content
-    
 
-def html_transform(my_html:list, tags_to_extract):
-    bs_transformer = BeautifulSoupTransformer()
-    docs_transf = bs_transformer.transform_documents(my_html, tags_to_extract=["span", ""] )
-    return docs_transf[0].page_content.split("\n")
+# def html_transform(my_html:list) -> list:
+#     bs_transformer = BeautifulSoupTransformer()
+#     docs_transf = bs_transformer.transform_documents(my_html, tags_to_extract=["span", ""] )
+#     return docs_transf[0].page_content.split("\n")
 
 def spacy_splitter(text:str) -> list:
     text_splitter = SpacyTextSplitter(chunk_size=500, chunk_overlap=10)
@@ -55,39 +41,40 @@ def spacy_splitter(text:str) -> list:
     print(f"Number of chunks: {len(chunks)}")
     return chunks
 
-
-def llm_query(context, posting, llm):    
-    response = llm.invoke(context + '. '.join(posting)) 
+# filter and clean lines in a separate function
+def llm_query(context, llm) -> str:    
+    response = llm.invoke(context) 
     response_list = [r for r in response.split("\n") if len(r)>1]
-    return response_list
+    return ' '.join(response_list)
 
-# vector_search_chroma doesn't work!!!
+
+# check length of the list before indexing!
 def main(urlsFname,ind, questionsFname, resumeFname, outputFname, postingParseContext, resumeParseContext):
     # load data
     urls = TextLoader(urlsFname).load()
     currUrl = urls[0].page_content.split("\n")[ind]
     question_docs = TextLoader(questionsFname).load()
     resume = PyMuPDFLoader(resumeFname, headers=["Professional Summary", "Technical skills","Strengths"]).load()
+    
     questions  = question_docs[0].page_content.split("\n")
     docs = load_html(currUrl)
     llm = Ollama(model="llama3")
     metadata = dict()
-    # for doc in raw_docs:
-        # for quest in questions:
     splitDocs = spacy_splitter(docs[0].page_content)
-    postingChunks = vector_search_chroma(splitDocs, query="what are the job requirements?", k=3)
+    postingChunks = vector_search_chroma(splitDocs, query=questions, k=3)
     responses = dict()
     # get answers
     for question in questions: 
-        postingAnswer = llm_query(postingParseContext + question+"in the following job posting.", postingChunks, llm)
+        postingAnswer = llm_query(postingParseContext + question+"in the following job posting."+ " ".join(postingChunks), llm)
         # responses[question] = postingAnswer
         # ask about resume
-        if "NaN" not in postingAnswer:
-            resumeChunk = vector_search_faiss(resume, query=postingAnswer, k=1)
-            resumeAnswer = [llm_query(resumeParseContext + f"Is {postingAnswer} mentioned in the following resume", resumeChunk, llm)]
-            responses[question] = dict(zip(resumeAnswer,postingAnswer))
-            metadata[docs.metadata["source"]] = responses
-    json_data = json.dumps(metadata, indent=2)
+        # if "NaN" not in postingAnswer:
+        resumeChunk = resume[0].page_content
+        resumeAnswer = llm_query(resumeParseContext + f" Here is the relevant information: {postingAnswer}. Here is the resume: {resumeChunk}", llm)
+        # responses[question] = dict(zip(resumeAnswer,postingAnswer))
+        responses[question] = {resumeAnswer: postingAnswer}
+    metadata[docs[0].metadata["source"]] = responses
+    json_data = json.dumps(metadata, indent=3)
 
     with open(outputFname, "a") as outfile:
         outfile.write(json_data)
@@ -97,8 +84,10 @@ if __name__=="__main__":
         urlsFname="position_urls.txt",
         ind = 0,
         questionsFname="questions.txt", 
-        resumeFname="OlgaSeleznova_MLEngineer_TEMPLATE.pdf",
+        resumeFname="OlgaSeleznova_MLEngineer_TEMPLATE (1).pdf",
         outputFname = "LLM-responses.json",
         postingParseContext = "You are a helpful assistant. You answer the questions about an open job posting. You answer concisely and do not hallucinate. If nothing is mentioned return strictly NaN.",
-        resumeParseContext = "You are a helpful assistant. You compare You answer strictly yes or no. Do not hallucinate."
+        resumeParseContext = "You are a helpful assistant. You answer strictly yes or no. Do not hallucinate. Is the following information mentioned in the resume? "
     )
+
+    # https://careers.tiktok.com/position/7381563894341126409/detail DOESN'T WORK
