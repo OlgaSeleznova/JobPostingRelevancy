@@ -9,85 +9,42 @@ from langchain_community.llms import Ollama
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
-
+from langchain_community.document_loaders import UnstructuredURLLoader
+from langchain_community.document_loaders import SeleniumURLLoader
+import utils
+from bs4 import BeautifulSoup
+import requests
 from collections import defaultdict
 import re
 import os
 import json
 
 
-def load_html(url_:list) -> list:
-    loader = AsyncChromiumLoader([url_])
-    html = loader.load()
-    bs_transformer = BeautifulSoupTransformer()
-    docs_transf = bs_transformer.transform_documents(html)
-    return docs_transf
-
-def vector_search_chroma(documents, query, k)->list:
-    embedding_func = OpenAIEmbeddings()
-    db = Chroma.from_documents(documents, embedding_func)
-    docs = db.similarity_search(''.join(query),k=k)
-    return [doc.page_content for doc in docs]
-
-
-# def html_transform(my_html:list) -> list:
-#     bs_transformer = BeautifulSoupTransformer()
-#     docs_transf = bs_transformer.transform_documents(my_html, tags_to_extract=["span", ""] )
-#     return docs_transf[0].page_content.split("\n")
-
-def spacy_splitter(text:str) -> list:
-    text_splitter = SpacyTextSplitter(chunk_size=500, chunk_overlap=10)
-    chunks = text_splitter.create_documents([text])
-    print(f"Number of chunks: {len(chunks)}")
-    return chunks
-
-# filter and clean lines in a separate function
-def llm_query(context, llm) -> str:    
-    response = llm.invoke(context) 
-    response_list = [r for r in response.split("\n") if len(r)>1]
-    return ' '.join(response_list)
-
 
 # check length of the list before indexing!
-def main(urlsFname,ind, questionsFname, resumeFname, outputFname, postingParseContext, resumeParseContext):
+def main(url, questionsFname, resumeFname, outputFname, postingParseContext, resumeParseContext):
     # load data
-    urls = TextLoader(urlsFname).load()
-    currUrl = urls[0].page_content.split("\n")[ind]
-    question_docs = TextLoader(questionsFname).load()
-    resume = PyMuPDFLoader(resumeFname, headers=["Professional Summary", "Technical skills","Strengths"]).load()
+    text = utils.load_html(url)[0].page_content
+    # text = utils.load_url_request(url=url)
+    questions = TextLoader(questionsFname).load()[0].page_content.split("\n")
+    resume = PyMuPDFLoader(resumeFname, headers=["Professional Summary", "Technical skills","Strengths"]).load()[0].page_content   
     
-    questions  = question_docs[0].page_content.split("\n")
-    docs = load_html(currUrl)
-    llm = Ollama(model="llama3")
-    metadata = dict()
-    splitDocs = spacy_splitter(docs[0].page_content)
-    postingChunks = vector_search_chroma(splitDocs, query=questions, k=3)
-    responses = dict()
+    splitDocs = utils.spacy_splitter(text=text)
+    postingChunks = utils.vector_search_chroma(splitDocs, query=resume, k=3)
+    responses = list()
     # get answers
     for question in questions: 
-        postingAnswer = llm_query(postingParseContext + question+"in the following job posting."+ " ".join(postingChunks), llm)
-        # responses[question] = postingAnswer
-        # ask about resume
-        # if "NaN" not in postingAnswer:
-        resumeChunk = resume[0].page_content
-        resumeAnswer = llm_query(resumeParseContext + f" Here is the relevant information: {postingAnswer}. Here is the resume: {resumeChunk}", llm)
-        # responses[question] = dict(zip(resumeAnswer,postingAnswer))
-        responses[question] = {resumeAnswer: postingAnswer}
-    metadata[docs[0].metadata["source"]] = responses
-    json_data = json.dumps(metadata, indent=3)
-
-    with open(outputFname, "a") as outfile:
-        outfile.write(json_data)
+        postingResponse = utils.llm_query(postingParseContext + question+ ".".join(postingChunks))
+        resumeAnswer = utils.llm_query(resumeParseContext + f"Statement: {postingResponse}. Resume: {resume}")
+        utils.update_data(responses, (url, question, postingResponse, resumeAnswer))
+    utils.append_to_json(fname=outputFname, data=responses)
 
 if __name__=="__main__":
     main(
-        urlsFname="position_urls.txt",
-        ind = 0,
+        url="https://lumenalta.com/jobs/ai-engineer",
         questionsFname="questions.txt", 
         resumeFname="OlgaSeleznova_MLEngineer_TEMPLATE (1).pdf",
         outputFname = "LLM-responses.json",
-        postingParseContext = "You are a helpful assistant. You answer the questions about an open job posting. You answer concisely and do not hallucinate. If nothing is mentioned return strictly NaN.",
-        resumeParseContext = "You are a helpful assistant. You answer strictly yes or no. Do not hallucinate. Is the following information mentioned in the resume? "
+        postingParseContext = "You are a helpful assistant. You answer the questions about an open job posting. You answer concisely and do not hallucinate. If no information is mentioned response strictly 'not important'",
+        resumeParseContext = "You are a helpful assistant. You check that the statement is correct for the resume. You answer strictly yes or no."
     )
-
-    # https://careers.tiktok.com/position/7381563894341126409/detail DOESN'T WORK
