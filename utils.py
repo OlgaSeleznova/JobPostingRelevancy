@@ -140,17 +140,17 @@ def resume_to_posting_compare(llm, question, jobPost, resume):
                     )
     response_template = PromptTemplate.from_template(
                     """
-                    You are an HR specialist. Based on the candidate's skills {resume_sum}
-                    and job requirements {requirements}, say if the candidate is suitable for the job.
-                    Explain why for each bullet list. Respond concisely.
+                    You are an HR specialist. Based on the job requirements {requirements} 
+                    and candidate's skills {resume_sum}. 
+                    Enumerate requirements that match with the candidate's qualification.
+                    Enumerate requirements that do not match.
+                    Respond concisely and with bullet list.
                     """
                     )
     job_chain = job_template | mistral | StrOutputParser()
     resume_chain = resume_sum | mistral | StrOutputParser()
     response_chain = response_template | mistral | StrOutputParser()
-    # bool_chain = bool_resp | llm | StrOutputParser()
     chain = ({"requirements" : job_chain}  | {"resume_sum" : resume_chain} | response_chain )   
-    # chain.max_tokens_limit = 100
     response = chain.invoke({"question":question,
                              "jobPost":jobPost,
                              "resume":resume
