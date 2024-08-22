@@ -14,6 +14,9 @@ from langchain_community.document_loaders import SeleniumURLLoader
 import utils
 from bs4 import BeautifulSoup
 import requests
+from langchain.chains import LLMChain
+from langchain_core.prompts import PromptTemplate
+
 from collections import defaultdict
 import re
 import os
@@ -23,28 +26,37 @@ import json
 
 # check length of the list before indexing!
 def main(url, questionsFname, resumeFname, outputFname, postingParseContext, resumeParseContext):
+    llm = Ollama(model="llama3", temperature=0)
     # load data
-    text = utils.load_html(url)[0].page_content
-    # text = utils.load_url_request(url=url)
+    text = utils.load_html(url)
     questions = TextLoader(questionsFname).load()[0].page_content.split("\n")
-    resume = PyMuPDFLoader(resumeFname, headers=["Professional Summary", "Technical skills","Strengths"]).load()[0].page_content   
-    
+    pdf = PyMuPDFLoader(resumeFname).load()
+    # resume = utils.get_resume(resumeFname)
+    resume_sum = utils.summarize_resume(docs=pdf, llm=llm)
+    # get the most relevant parts of job posting, based in the resume summary
     splitDocs = utils.spacy_splitter(text=text)
-    postingChunks = utils.vector_search_chroma(splitDocs, query=resume, k=3)
-    responses = list()
+    postingChunks = utils.vector_search_chroma(splitDocs, query=resume_sum, k=3)
+    
     # get answers
     for question in questions: 
-        postingResponse = utils.llm_query(postingParseContext + question+ ".".join(postingChunks))
-        resumeAnswer = utils.llm_query(resumeParseContext + f"Statement: {postingResponse}. Resume: {resume}")
-        utils.update_data(responses, (url, question, postingResponse, resumeAnswer))
-    utils.append_to_json(fname=outputFname, data=responses)
+        # run sequential chain per question
+        answer = utils.resume_to_posting_compare(llm, question, postingChunks[0].page_content, resume='\n'.join([r.page_content for r in pdf]))
+        # postingResponse = utils.llm_query(postingParseContext + question+ ".".join(postingChunks[0].page_content))
+        # resumeAnswer = utils.llm_query(resumeParseContext + f"Statement: {postingResponse}. Resume: {resume_sum}")
+        utils.save_to_mongo("job_posting_to_resume", "mistral-nemo", data={
+                                                                "url": url,
+                                                                "question": question,
+                                                                # "posting" : postingResponse,
+                                                                "response": answer
+                                                                })
 
+ 
 if __name__=="__main__":
     main(
         url="https://lumenalta.com/jobs/ai-engineer",
         questionsFname="questions.txt", 
         resumeFname="OlgaSeleznova_MLEngineer_TEMPLATE (1).pdf",
         outputFname = "LLM-responses.json",
-        postingParseContext = "You are a helpful assistant. You answer the questions about an open job posting. You answer concisely and do not hallucinate. If no information is mentioned response strictly 'not important'",
+        postingParseContext = "You are a helpful assistant. You answer the questions about an open job posting. You answer concisely. You return answers only as a list, split with a newline.",
         resumeParseContext = "You are a helpful assistant. You check that the statement is correct for the resume. You answer strictly yes or no."
     )

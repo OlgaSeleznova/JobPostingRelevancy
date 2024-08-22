@@ -1,4 +1,6 @@
-Experience in which fields is required?
-Which programming languages and frameworks should a candidate know?
-Understanding of which concepts is required? 
+Experience in which professional fields is required?
+Which programming languages and frameworks are required for this role?
+Which skills are required for this position?
+Experience in which specific industry is required for the role?
 Which degree is required? 
+Which requirement are missing in the candidate's skillset?
