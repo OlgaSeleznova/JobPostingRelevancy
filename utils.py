@@ -17,9 +17,10 @@ from langchain_community.document_loaders import SeleniumURLLoader
 import utils
 from bs4 import BeautifulSoup
 from langchain.schema.runnable import RunnablePassthrough
-
+from langchain.text_splitter import MarkdownTextSplitter
 from langchain_core.output_parsers import StrOutputParser
-
+from langchain.text_splitter import MarkdownTextSplitter
+from langchain_community.utils.math import cosine_similarity_top_k
 import requests
 from collections import defaultdict
 import re
@@ -27,6 +28,8 @@ import os
 import json
 from pymongo_get_database import get_database
 from langchain.chains import LLMChain, SimpleSequentialChain, SequentialChain
+from langchain_text_splitters import CharacterTextSplitter
+
 
 def load_html(url_:list) -> list:
     loader = AsyncChromiumLoader([url_])
@@ -46,7 +49,7 @@ def vector_search_chroma(documents, query, k)->list:
     embedding_func = OpenAIEmbeddings()
     db = Chroma.from_documents(documents, embedding_func)
     docs = db.similarity_search(query,k=k)
-    return docs#[doc.page_content for doc in docs]
+    return docs
 
 
 def get_resume(file):
@@ -61,8 +64,8 @@ def get_resume(file):
 #     docs_transf = bs_transformer.transform_documents(my_html, tags_to_extract=["span", ""] )
 #     return docs_transf[0].page_content.split("\n")
 
-def spacy_splitter(text:str) -> list:
-    text_splitter = SpacyTextSplitter(chunk_size=500, chunk_overlap=10)
+def spacy_splitter(text:str, chunk:int, overlap:int) -> list:
+    text_splitter = SpacyTextSplitter(chunk_size=chunk, chunk_overlap=overlap)
     chunks = text_splitter.create_documents([text])
     print(f"Number of chunks: {len(chunks)}")
     return chunks
@@ -112,47 +115,37 @@ def save_to_mongo(db_name:str, collection_name:str, data:dict):
     collection_name.insert_one(data)
 
 
-def summarize_resume(docs, llm):
-    
-    # Define prompt
-    prompt_template = PromptTemplate.from_template(
-        ("Write a concise summary of the following:\\n\\n{context}")
-    )
-    # Invoke chain
-    result = llm.invoke(prompt_template.format_prompt(context= docs))
+def conclude_responses(db_name, collection_name, llm):
+    dbname = get_database(db_name)
+    collection_name = dbname[collection_name]
+    item_details = collection_name.find()
+    responses = "\n\n".join([it["response"] for it in item_details])
+    prompt = PromptTemplate.from_template(
+                """
+                You are an HR specialist. 
+                Based on analysis of candidate's relevancy to job posting in responses {responses},  
+                conclude if a candidate is suitable for the position. 
+                Answer only YES or NO.
+                """
+                )
+    result = llm.invoke(prompt.format_prompt(responses=responses))
+    # TBD: save data
     return result
 
-def resume_to_posting_compare(llm, question, jobPost, resume):
-    mistral = Ollama(model="mistral-nemo", temperature=0)
-    # based on the next text: {} answer the question {}.
 
-    job_template = PromptTemplate.from_template(
-                    """You are an HR specialist. Answer the question {question} about the job posting {jobPost}
-                    Respond concisely.
-                    Return your answer as a bullet list.
-                    """
-                    )
-    resume_sum = PromptTemplate.from_template(
-                    """You are an HR specialist. Based on the resume {resume}, 
-                    enumerate all skills of this candidate. 
-                    Return your answer as a bullet list.
-                    """
-                    )
-    response_template = PromptTemplate.from_template(
-                    """
-                    You are an HR specialist. Based on the job requirements {requirements} 
-                    and candidate's skills {resume_sum}. 
-                    Enumerate requirements that match with the candidate's qualification.
-                    Enumerate requirements that do not match.
-                    Respond concisely and with bullet list.
-                    """
-                    )
-    job_chain = job_template | mistral | StrOutputParser()
-    resume_chain = resume_sum | mistral | StrOutputParser()
-    response_chain = response_template | mistral | StrOutputParser()
-    chain = ({"requirements" : job_chain}  | {"resume_sum" : resume_chain} | response_chain )   
-    response = chain.invoke({"question":question,
-                             "jobPost":jobPost,
-                             "resume":resume
-                             })
-    return response
+def character_split(text, chunk=100, overlap=0):
+    text_splitter = CharacterTextSplitter(
+                    separator="\n",
+                    chunk_size=chunk,
+                    chunk_overlap=overlap,
+                    length_function=len,
+                    is_separator_regex=False,
+                )
+    docs = text_splitter.create_documents([text])
+    return docs
+
+def find_most_similar(x,y):
+    return cosine_similarity_top_k(x,y)
+
+def format_docs(docs):
+    return '\n'.join([doc.page_content for doc in docs])
