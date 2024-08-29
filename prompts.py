@@ -22,6 +22,20 @@ def get_skills(docs, llm):
     return result
 
 
+def summarize_cv(resume_docs, llm):
+    # Define prompt
+    resume_sum = PromptTemplate.from_template(
+                """You are an HR specialist. Summarize the resume {resume}. 
+                Absolutely no introduction can be used. Use no digits or special characters.
+                Answers should be concise. Do not include any explanations, introdictions or examples.  
+                Never return introductions like "here is the candidate's resume summary"              
+                """
+                )
+    # Invoke chain
+    result = llm.invoke(resume_sum.format_prompt(resume=resume_docs))
+    return result
+
+
 def get_requirements(docs, llm):
     # Define prompt
     resume_sum = PromptTemplate.from_template(
@@ -74,18 +88,26 @@ def resume_to_posting_compare(llm, question, jobPost, resume):
                              })
     return response
 
-def qa(require:str, ):
-    """You are an HR specialist. Based on the job posting requirement {require}, 
-    generate a question for a candidate, that can be answered only YES or NO.
-    Return only a question. No introductions or explanations can be used.
-    For example,
-    Reqirement: "Has expertise in NLP, safety, fairness, and Responsible AI."
-    Questions: "Are you experienced in NLP? Are you experienced in safety? Are you experienced in fairness? Are you experienced in Responsible AI?"
-    """
+def quesion_answering(require:str, skills:str, llm):
+    questions_template = PromptTemplate.from_template("""You are an HR specialist. Based on the job posting requirement {require}, 
+            generate a question for a candidate, that can be answered only YES or NO.
+            Return only a question. No introductions or explanations can be used.
+            For example,
+            Reqirement: "Has expertise in NLP, safety, fairness, and Responsible AI."
+            Questions: "Are you experienced in NLP, safety, fairness, and Responsible AI?"
+            """)
 
-    """
-    You are a candidate, looking for a new job. Based on your skills {skills},
-    answer questions. You may not use any additional information except what is mentioned above.
-    Answer only YES or NO.
-    """
-    return
+    response_template = PromptTemplate.from_template("""
+            You are a candidate, looking for a new job. Based on your skills {skills},
+            answer question {questions}. You may not use any additional information except what is mentioned above.
+            Answer only YES or NO. Be truthful.
+            """)
+    quest_chain = questions_template | llm | StrOutputParser()
+    response_chain = response_template | llm | StrOutputParser()
+    # response_template.format()
+    # chain = ( {"questions":quest_chain} | response_chain)
+    question = quest_chain.invoke({"require":require})
+    response = response_chain.invoke({"skills":skills, "questions": question})
+    return question, response
+
+
