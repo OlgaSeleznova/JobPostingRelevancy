@@ -1,33 +1,17 @@
 from langchain_community.document_loaders import AsyncChromiumLoader
 from langchain_community.document_transformers import BeautifulSoupTransformer
-from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import SpacyTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_openai.embeddings import OpenAIEmbeddings
-# from langchain_community.embeddings.ollama import OllamaEmbeddings
-from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import PromptTemplate
-from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain_community.llms import Ollama
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import UnstructuredURLLoader
-from langchain_community.document_loaders import SeleniumURLLoader
-import utils
 from bs4 import BeautifulSoup
-from langchain.schema.runnable import RunnablePassthrough
-from langchain.text_splitter import MarkdownTextSplitter
-from langchain_core.output_parsers import StrOutputParser
-from langchain.text_splitter import MarkdownTextSplitter
 from langchain_community.utils.math import cosine_similarity_top_k
 import requests
-from collections import defaultdict
-import re
 import os
 import json
 from pymongo_get_database import get_database
-from langchain.chains import LLMChain, SimpleSequentialChain, SequentialChain
 from langchain_text_splitters import CharacterTextSplitter
 
 
@@ -70,12 +54,12 @@ def spacy_splitter(text:str, chunk:int, overlap:int) -> list:
     print(f"Number of chunks: {len(chunks)}")
     return chunks
 
-# filter and clean lines in a separate function
-def llm_query(context:str) -> str:    
-    llm = Ollama(model="llama3")
-    response = llm.invoke(context) 
-    response_list = [r for r in response.split("\n") if len(r)>1]
-    return ' '.join(response_list)
+# # filter and clean lines in a separate function
+# def llm_query(context:str) -> str:    
+#     llm = Ollama(model="llama3")
+#     response = llm.invoke(context) 
+#     response_list = [r for r in response.split("\n") if len(r)>1]
+#     return ' '.join(response_list)
 
 
 def load_txt(fname):
@@ -132,6 +116,13 @@ def conclude_responses(db_name, collection_name, llm):
     # TBD: save data
     return result
 
+def collect_database_values(db_name, collection_name, value_to_extract):
+    dbname = get_database(db_name)
+    collection_name = dbname[collection_name]
+    item_details = collection_name.find()
+    all_responses = [it[value_to_extract] for it in item_details]
+    return all_responses
+
 
 def character_split(text, chunk=100, overlap=0):
     text_splitter = CharacterTextSplitter(
@@ -149,3 +140,10 @@ def find_most_similar(x,y):
 
 def format_docs(docs):
     return '\n'.join([doc.page_content for doc in docs])
+
+def relevancy_metric(responses:list):
+    yes_num = 0
+    for res in responses:
+        if res.lower() =="yes":
+            yes_num+=1
+    return int(yes_num/len(responses)*100)

@@ -40,13 +40,12 @@ def get_requirements(docs, llm):
     # Define prompt
     resume_sum = PromptTemplate.from_template(
                 """You are an HR specialist. Based on the job posting {jobPosting}, 
-                extract only requirements for the position. Return a list, each item in a newline. 
-                Absolutely no introduction can be used. Use no digits or special characters.
-                Answers should be concise. Do not include any explanations, introdictions or examples.
-                For example:
-                "3+ years relevant work experience with building and automating data analytics and Machine Learning (ML) pipelines. \n
-                Good understanding of ML and Al concepts. Hands-on experience in ML model development. \n
-                Experience in operationalization of Machine Learning projects (MLOps) using at least one of the popular frameworks or platforms (e.g. Kubeflow, AWS Sagemaker, Google Al Platform, Azure Machine Learning, Databricks, DataRobot, MLFlow).
+                extract only requirements for the position. Include also technical requirements.
+                Return a list, each item in a newline. 
+                Never start with introduction like 'here is a list of requirements'.
+                No additional information may be used.
+                Use no digits or special characters.
+                Answers should be concise. Do not include any explanations, introductions or examples.
                 """
                 )
     # Invoke chain
