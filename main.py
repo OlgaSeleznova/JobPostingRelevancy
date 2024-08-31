@@ -1,5 +1,6 @@
 from langchain_community.vectorstores import Chroma
 from langchain_openai.embeddings import OpenAIEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_community.llms import Ollama
 from langchain_community.document_loaders import PyMuPDFLoader
 import datetime
