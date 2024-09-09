@@ -7,8 +7,8 @@ Job Posting Relevance Analyzer is an AI-powered tool designed to determine how r
 ## Technology Stack
 
 	•	Programming Language: Python
-	•	NLP Framework: LangChain (for prompting)
-	•	Database: MongoDB (for data processing)
+	•	NLP Framework: LangChain
+	•	Database: MongoDB 
 	•	Embeddings: OpenAI embeddings
 	•	Large Language Model: Llama 3.1 (70B parameters)
 
