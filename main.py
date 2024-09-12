@@ -7,6 +7,8 @@ import utils
 import prompts
 import uuid
 import bson
+from multiprocessing import Process
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 
@@ -35,27 +37,51 @@ def generate_cv_vecstore(resume, embed_func):
     return db_cv
 
 
+def extract_responses(requirement, resume, llm):
+    docs = resume.similarity_search(requirement, k=4)
+    mostSimSkills = utils.format_docs(docs)
+    question, response = prompts.quesion_answering(requirement, mostSimSkills, llm=llm)
+    return question, response
+
+
+def parallel_process(requirements_cleaned, resume, llm, max_workers=4):
+    results = []
+    
+    # Use ThreadPoolExecutor for parallel processing
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit tasks to the executor
+        future_to_req = {executor.submit(extract_responses, req, resume, llm): req for req in requirements_cleaned}
+        
+        # Gather the results as tasks are completed
+        for future in as_completed(future_to_req):
+            try:
+                quest, resp = future.result()
+                results.append((quest, resp))
+            except Exception as exc:
+                print(f'Error occurred: {exc}')
+    
+    return results
+
+
 def save_relevance_mongo(requirements, resume, llm, url, db, collection):
     dbname = utils.get_database(db)
     collection_name = dbname[collection]
     timestamp = datetime.datetime.now()
     sessionID = bson.Binary.from_uuid(uuid.uuid4())
-    for requireDocs in requirements:
-        requirement = requireDocs.page_content
-        docs = resume.similarity_search(requirement, k=4)
-        mostSimSkills = utils.format_docs(docs)
-        question, response = prompts.quesion_answering(requirement, mostSimSkills, llm=llm)
-        print(f"Saving data for requirement *{requirement}*")
+    requirements_cleaned = [req.page_content for req in requirements]
+    results = parallel_process(requirements_cleaned, resume, llm, max_workers=4)
+    for i in range(len(results)):
+        question, response = results[i]
         collection_name.insert_one({
-                                "_id":bson.Binary.from_uuid(uuid.uuid4()),
-                                "sessionID":sessionID,
-                                "url":url,
-                                "date":timestamp,
-                                "mostSimilarDocs":mostSimSkills,
-                                "requirement":requirement,
-                                "questions":question,
-                                "responses":response
-                            }) 
+                            "_id":bson.Binary.from_uuid(uuid.uuid4()),
+                            "sessionID":sessionID,
+                            "url":url,
+                            "date":timestamp,
+                            "requirement":requirements_cleaned[i],
+                            "questions": question,
+                            "responses": response
+                        }) 
+
     return sessionID
 
 
@@ -63,7 +89,6 @@ def save_relevance_mongo(requirements, resume, llm, url, db, collection):
 def main(url, resumeFname, model_name, db_name, response_collection_name, relevancy_collection_name):
     llm = Ollama(model=model_name, temperature=0)
     embedding_func = OpenAIEmbeddings()
-    # now = datetime.datetime.now().strftime("%H:%M:%S_%d%m")
     # load data
     jobPost, cv = load_data(url, resumeFname)
     # extract job requirements from the posting
@@ -76,14 +101,14 @@ def main(url, resumeFname, model_name, db_name, response_collection_name, releva
     all_responses = utils.collect_database_values(db_name=db_name, 
                             collection_name=response_collection_name,
                             unique_index=indId)
-    resp_match, resp_miss, result = utils.relevancy_mextric(all_responses)
+    resp_match, resp_miss, result = utils.relevancy_metric(all_responses)
     utils.save_to_mongo(db_name=db_name, 
                             collection_name=relevancy_collection_name,
                             data={
                                 "url":url,
                                 "result":result,
-                                "matching":resp_match,
-                                "missing":resp_miss
+                                "matching":'.'.join(resp_match.flatten().tolist()),
+                                "missing":'.'.join(resp_miss.flatten().tolist())
                             })
     print(f"Resume is {result}% relevant for the position")
  
