@@ -13,6 +13,7 @@ import os
 import json
 from pymongo_get_database import get_database
 from langchain_text_splitters import CharacterTextSplitter
+from pandas import DataFrame
 
 
 def load_html(url_:list) -> list:
@@ -116,12 +117,13 @@ def conclude_responses(db_name, collection_name, llm):
     # TBD: save data
     return result
 
-def collect_database_values(db_name, collection_name, value_to_extract):
-    dbname = get_database(db_name)
-    collection_name = dbname[collection_name]
-    item_details = collection_name.find()
-    all_responses = [it[value_to_extract] for it in item_details]
-    return all_responses
+def collect_database_values(db_name, collection_name, unique_index):
+    db = get_database(db_name)
+    collection = db[collection_name]
+    cursor = list(collection.find({"sessionID": unique_index}))
+    df = DataFrame(cursor)
+
+    return df
 
 
 def character_split(text, chunk=100, overlap=0):
@@ -141,9 +143,8 @@ def find_most_similar(x,y):
 def format_docs(docs):
     return '\n'.join([doc.page_content for doc in docs])
 
-def relevancy_metric(responses:list):
-    yes_num = 0
-    for res in responses:
-        if res.lower() =="yes":
-            yes_num+=1
-    return int(yes_num/len(responses)*100)
+def relevancy_metric(data):
+    data = data.groupby("responses")[["requirement"]].apply(lambda x: x)#.reset_index().drop(columns="level_1")
+    resp_match = data.loc["YES",:].values
+    resp_miss = data.loc["NO",:].values
+    return resp_match, resp_miss, int(resp_match.size/data.size*100)

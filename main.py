@@ -5,60 +5,85 @@ from langchain_community.document_loaders import PyMuPDFLoader
 import datetime
 import utils
 import prompts
+import uuid
+import bson
 
 
-# check length of the list before indexing!
-def main(url, resumeFname, model_name, collection_name, db_name, final_db_name, jp_max_chunk=5000):
-    llm = Ollama(model=model_name, temperature=0)
-    embeddings = OpenAIEmbeddings()
-    now = datetime.datetime.now().strftime("%H:%M:%S_%d%m")
-    # load data
-    jobPost = utils.load_html(url)
-    if len(jobPost) > jp_max_chunk:
-    # get job requirements
-        # relevant chunk of data to improve performance because of issues
-        jobPost_split = utils.spacy_splitter(jobPost, chunk=500, overlap=50)
-        db_jp = Chroma.from_documents(jobPost_split, embeddings)
-        jobPost_docs = db_jp.similarity_search("list of requirements", k=5)
-        jp_requirements = utils.format_docs(jobPost_docs)
-    else:
-        jp_requirements = jobPost
+
+def load_data(url_l, resume):
+    job_post = utils.load_html(url_l)
+    pdf_ = PyMuPDFLoader(resume).load()
+    resume = utils.format_docs(pdf_)
+    return job_post, resume
+
+
+def extract_job_requirements(posting, embed_func, llm):
+    # relevant chunk of data to improve performance because of issues
+    jobPost_split = utils.spacy_splitter(posting, chunk=500, overlap=50)
+    db_jp = Chroma.from_documents(jobPost_split, embed_func)
+    jobPost_docs = db_jp.similarity_search("list of requirements", k=5)
+    jp_requirements = utils.format_docs(jobPost_docs)
     requirements = prompts.get_requirements(jp_requirements, llm)
-    requirement_docs = utils.character_split(requirements)
-    # get resume
-    pdf = PyMuPDFLoader(resumeFname).load()
-    resume = utils.format_docs(pdf)
+    docs = utils.character_split(requirements)
+    return docs
+
+
+def generate_cv_vecstore(resume, embed_func):
     resume_docs = utils.spacy_splitter(resume, chunk=200, overlap=5)
     # vectorize resume
-    db_cv = Chroma.from_documents(resume_docs, embeddings)
-    collec_name_datetimed = collection_name+now
-    for requireDocs in requirement_docs:
+    db_cv = Chroma.from_documents(resume_docs, embed_func)
+    return db_cv
+
+
+def save_relevance_mongo(requirements, resume, llm, url, db, collection):
+    dbname = utils.get_database(db)
+    collection_name = dbname[collection]
+    timestamp = datetime.datetime.now()
+    sessionID = bson.Binary.from_uuid(uuid.uuid4())
+    for requireDocs in requirements:
         requirement = requireDocs.page_content
-        docs = db_cv.similarity_search(requirement, k=4)
+        docs = resume.similarity_search(requirement, k=4)
         mostSimSkills = utils.format_docs(docs)
         question, response = prompts.quesion_answering(requirement, mostSimSkills, llm=llm)
         print(f"Saving data for requirement *{requirement}*")
-        utils.save_to_mongo(db_name=db_name, 
-                            collection_name=collec_name_datetimed,
-                            data={
+        collection_name.insert_one({
+                                "_id":bson.Binary.from_uuid(uuid.uuid4()),
+                                "sessionID":sessionID,
                                 "url":url,
-                                "requirement":requirement,
+                                "date":timestamp,
                                 "mostSimilarDocs":mostSimSkills,
+                                "requirement":requirement,
                                 "questions":question,
                                 "responses":response
-                            })
+                            }) 
+    return sessionID
+
+
+# check length of the list before indexing!
+def main(url, resumeFname, model_name, db_name, response_collection_name, relevancy_collection_name):
+    llm = Ollama(model=model_name, temperature=0)
+    embedding_func = OpenAIEmbeddings()
+    # now = datetime.datetime.now().strftime("%H:%M:%S_%d%m")
+    # load data
+    jobPost, cv = load_data(url, resumeFname)
+    # extract job requirements from the posting
+    requirement_docs = extract_job_requirements(jobPost, embedding_func, llm)
+    # generate cv vector store documents
+    cv_vecs = generate_cv_vecstore(cv, embed_func=embedding_func)
+    #get position relevance and save data to mongo
+    indId = save_relevance_mongo(requirement_docs, cv_vecs, llm, url, db_name, response_collection_name)
+    
     all_responses = utils.collect_database_values(db_name=db_name, 
-                            collection_name=collec_name_datetimed,
-                            value_to_extract="responses")
-    result = utils.relevancy_metric(all_responses)
-    utils.save_to_mongo(db_name=final_db_name, 
-                            collection_name="collection",
+                            collection_name=response_collection_name,
+                            unique_index=indId)
+    resp_match, resp_miss, result = utils.relevancy_mextric(all_responses)
+    utils.save_to_mongo(db_name=db_name, 
+                            collection_name=relevancy_collection_name,
                             data={
                                 "url":url,
                                 "result":result,
-                                "collection": collection_name,
-                                "model_name":model_name,
-                                "datetime":now
+                                "matching":resp_match,
+                                "missing":resp_miss
                             })
     print(f"Resume is {result}% relevant for the position")
  
@@ -68,7 +93,7 @@ if __name__=="__main__":
         url="https://www.morganmckinley.com/jobs/ontario/machine-learning-engineer/1085188?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
         resumeFname="data/OlgaSeleznova_MLEngineer_TEMPLATE (1).pdf",
         model_name="llama3.1:70b",
-        collection_name="morganmckinley-ml_eng",
-        db_name = "cv_jp_collection",
-        final_db_name = "cv_final_relevancy"
+        response_collection_name="responses_collected",
+        relevancy_collection_name="final_relevancy",
+        db_name = "job_postings_relevancy",
     )
