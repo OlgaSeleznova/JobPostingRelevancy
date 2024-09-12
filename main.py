@@ -7,9 +7,7 @@ import utils
 import prompts
 import uuid
 import bson
-from multiprocessing import Process
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
 
 
 def load_data(url_l, resume):
@@ -46,12 +44,10 @@ def extract_responses(requirement, resume, llm):
 
 def parallel_process(requirements_cleaned, resume, llm, max_workers=4):
     results = []
-    
     # Use ThreadPoolExecutor for parallel processing
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit tasks to the executor
         future_to_req = {executor.submit(extract_responses, req, resume, llm): req for req in requirements_cleaned}
-        
         # Gather the results as tasks are completed
         for future in as_completed(future_to_req):
             try:
@@ -59,7 +55,6 @@ def parallel_process(requirements_cleaned, resume, llm, max_workers=4):
                 results.append((quest, resp))
             except Exception as exc:
                 print(f'Error occurred: {exc}')
-    
     return results
 
 
@@ -81,7 +76,6 @@ def save_relevance_mongo(requirements, resume, llm, url, db, collection):
                             "questions": question,
                             "responses": response
                         }) 
-
     return sessionID
 
 
@@ -97,7 +91,6 @@ def main(url, resumeFname, model_name, db_name, response_collection_name, releva
     cv_vecs = generate_cv_vecstore(cv, embed_func=embedding_func)
     #get position relevance and save data to mongo
     indId = save_relevance_mongo(requirement_docs, cv_vecs, llm, url, db_name, response_collection_name)
-    
     all_responses = utils.collect_database_values(db_name=db_name, 
                             collection_name=response_collection_name,
                             unique_index=indId)
