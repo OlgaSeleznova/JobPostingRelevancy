@@ -13,8 +13,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 def load_data(url_l, resume):
     job_post = utils.load_html(url_l)
     pdf_ = PyMuPDFLoader(resume).load()
-    resume = utils.format_docs(pdf_)
-    return job_post, resume
+    resume_loaded = utils.format_docs(pdf_)
+    return job_post, resume_loaded
 
 
 def extract_job_requirements(posting, embed_func, llm):

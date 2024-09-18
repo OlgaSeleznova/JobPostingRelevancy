@@ -73,6 +73,17 @@ def parallel_process(requirements_cleaned, resume, llm, max_workers=4):
     return results
 
 
+def get_relevance_no_mongo(requirements, resume, llm) -> dict:
+    requirements_cleaned = [req.page_content for req in requirements]
+    results = parallel_process(requirements_cleaned, resume, llm, max_workers=4)
+    responce_collect = dict()
+    for i in range(len(results)):
+        question, response = results[i]
+        # generate dataframe with response and requirements
+        responce_collect[question] = response
+    return responce_collect
+
+
 def save_relevance_mongo(requirements, resume, llm, url, db, collection):
     dbname = get_database(db)
     collection_name = dbname[collection]
@@ -139,6 +150,74 @@ def spacy_splitter(text:str, chunk:int, overlap:int) -> list:
 #     response = llm.invoke(context) 
 #     response_list = [r for r in response.split("\n") if len(r)>1]
 #     return ' '.join(response_list)
+
+def load_data(url_l, resume):
+    job_post = utils.load_html(url_l)
+    pdf_ = PyMuPDFLoader(resume).load()
+    resume = utils.format_docs(pdf_)
+    return job_post, resume
+
+def extract_job_requirements(posting, embed_func, llm):
+    # relevant chunk of data to improve performance because of issues
+    jobPost_split = utils.spacy_splitter(posting, chunk=500, overlap=50)
+    db_jp = Chroma.from_documents(jobPost_split, embed_func)
+    jobPost_docs = db_jp.similarity_search("list of requirements", k=5)
+    jp_requirements = utils.format_docs(jobPost_docs)
+    requirements = prompts.get_requirements(jp_requirements, llm)
+    docs = utils.character_split(requirements)
+    return docs
+
+
+def generate_cv_vecstore(resume, embed_func):
+    resume_docs = utils.spacy_splitter(resume, chunk=200, overlap=5)
+    # vectorize resume
+    db_cv = Chroma.from_documents(resume_docs, embed_func)
+    return db_cv
+
+
+def extract_responses(requirement, resume, llm):
+    docs = resume.similarity_search(requirement, k=4)
+    mostSimSkills = utils.format_docs(docs)
+    question, response = prompts.quesion_answering(requirement, mostSimSkills, llm=llm)
+    return question, response
+
+
+def parallel_process(requirements_cleaned, resume, llm, max_workers=4):
+    results = []
+    # Use ThreadPoolExecutor for parallel processing
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit tasks to the executor
+        future_to_req = {executor.submit(extract_responses, req, resume, llm): req for req in requirements_cleaned}
+        # Gather the results as tasks are completed
+        for future in as_completed(future_to_req):
+            try:
+                quest, resp = future.result()
+                results.append((quest, resp))
+            except Exception as exc:
+                print(f'Error occurred: {exc}')
+    return results
+
+
+def save_relevance_mongo(requirements, resume, llm, url, db, collection):
+    dbname = utils.get_database(db)
+    collection_name = dbname[collection]
+    timestamp = datetime.datetime.now()
+    sessionID = bson.Binary.from_uuid(uuid.uuid4())
+    requirements_cleaned = [req.page_content for req in requirements]
+    results = parallel_process(requirements_cleaned, resume, llm, max_workers=4)
+    for i in range(len(results)):
+        question, response = results[i]
+        collection_name.insert_one({
+                            "_id":bson.Binary.from_uuid(uuid.uuid4()),
+                            "sessionID":sessionID,
+                            "url":url,
+                            "date":timestamp,
+                            "requirement":requirements_cleaned[i],
+                            "questions": question,
+                            "responses": response
+                        }) 
+    return sessionID
+
 
 
 def load_txt(fname):
@@ -222,7 +301,17 @@ def format_docs(docs):
     return '\n'.join([doc.page_content for doc in docs])
 
 def relevancy_metric(data):
-    data = data.groupby("responses")[["requirement"]].apply(lambda x: x)#.reset_index().drop(columns="level_1")
-    resp_match = data.loc["YES",:].values
-    resp_miss = data.loc["NO",:].values
-    return resp_match, resp_miss, int(resp_match.size/data.size*100)
+    uniqResp = data["responses"].unique()
+    dataGR = data.groupby("responses")[["requirement"]].apply(lambda x: x)#.reset_index().drop(columns="level_1")
+    if "YES" and "NO" in uniqResp:
+        print("all values exist")
+        resp_match = dataGR.loc["YES",:].values.flatten() 
+        resp_miss = dataGR.loc["NO",:].values.flatten() 
+    elif "YES" not in uniqResp:
+        resp_match = "No matching values"
+        resp_miss = dataGR.loc["NO",:].values.flatten() 
+    elif "NO" not in uniqResp:
+        resp_match = dataGR.loc["YES",:].values.flatten() 
+        resp_miss = "No missing values"
+    print(resp_match, resp_miss, resp_match.size, data.size*100)
+    return resp_match, resp_miss, int(resp_match.size/dataGR.size*100)
