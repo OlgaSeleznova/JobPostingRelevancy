@@ -5,7 +5,6 @@ from langchain_community.vectorstores import Chroma
 from pymongo_get_database import get_database
 from langchain_text_splitters import CharacterTextSplitter
 from pandas import DataFrame
-from langchain_community.vectorstores import Chroma
 import datetime
 import utils
 import prompts
@@ -61,16 +60,6 @@ def parallel_process(requirements_cleaned, resume, llm, max_workers=4):
     return results
 
 
-# def get_relevance_no_mongo(requirements, resume, llm) -> dict:
-#     requirements_cleaned = [req.page_content for req in requirements]
-#     results = parallel_process(requirements_cleaned, resume, llm, max_workers=4)
-#     responce_collect = dict()
-#     for i in range(len(results)):
-#         question, response = results[i]
-#         # generate dataframe with response and requirements
-#         responce_collect[question] = response
-#     return responce_collect
-
 
 def save_relevance_mongo(requirements, resume, llm, url, db, collection):
     dbname = get_database(db)
@@ -99,32 +88,6 @@ def load_html(url:list) -> list:
     docs_transf = BeautifulSoupTransformer().transform_documents(html)
     return docs_transf[0].page_content
 
-# 
-# def load_url_request(url):
-#     page = requests.get(url)
-#     soup = BeautifulSoup(page.content, "html.parser")
-#     text = soup.get_text()
-#     return text
-
-
-# def vector_search_chroma(documents, query, k)->list:
-#     embedding_func = OpenAIEmbeddings()
-#     db = Chroma.from_documents(documents, embedding_func)
-#     docs = db.similarity_search(query,k=k)
-#     return docs
-
-
-# def get_resume(file):
-#     pdf = PyMuPDFLoader(file).load()
-#     text = list()
-#     for page in range(len(pdf)):
-#         text.append(pdf[page].page_content)
-#     return '\n'.join(text)
-
-# def html_transform(my_html:list) -> list:
-#     bs_transformer = BeautifulSoupTransformer()
-#     docs_transf = bs_transformer.transform_documents(my_html, tags_to_extract=["span", ""] )
-#     return docs_transf[0].page_content.split("\n")
 
 def spacy_splitter(text:str, chunk:int, overlap:int) -> list:
     text_splitter = SpacyTextSplitter(chunk_size=chunk, chunk_overlap=overlap)
@@ -132,58 +95,6 @@ def spacy_splitter(text:str, chunk:int, overlap:int) -> list:
     print(f"Number of chunks: {len(chunks)}")
     return chunks
 
-# # filter and clean lines in a separate function
-# def llm_query(context:str) -> str:    
-#     llm = Ollama(model="llama3")
-#     response = llm.invoke(context) 
-#     response_list = [r for r in response.split("\n") if len(r)>1]
-#     return ' '.join(response_list)
-
-# def load_data(url_l, resume):
-#     job_post = utils.load_html(url_l)
-#     pdf_ = PyMuPDFLoader(resume).load()
-#     resume = utils.format_docs(pdf_)
-#     return job_post, resume
-
-# def extract_job_requirements(posting, embed_func, llm):
-#     # relevant chunk of data to improve performance because of issues
-#     jobPost_split = utils.spacy_splitter(posting, chunk=500, overlap=50)
-#     db_jp = Chroma.from_documents(jobPost_split, embed_func)
-#     jobPost_docs = db_jp.similarity_search("list of requirements", k=5)
-#     jp_requirements = utils.format_docs(jobPost_docs)
-#     requirements = prompts.get_requirements(jp_requirements, llm)
-#     docs = utils.character_split(requirements)
-#     return docs
-
-
-# def generate_cv_vecstore(resume, embed_func):
-#     resume_docs = utils.spacy_splitter(resume, chunk=200, overlap=5)
-#     # vectorize resume
-#     db_cv = Chroma.from_documents(resume_docs, embed_func)
-#     return db_cv
-
-
-# def extract_responses(requirement, resume, llm):
-#     docs = resume.similarity_search(requirement, k=4)
-#     mostSimSkills = utils.format_docs(docs)
-#     question, response = prompts.quesion_answering(requirement, mostSimSkills, llm=llm)
-#     return question, response
-
-
-# def parallel_process(requirements_cleaned, resume, llm, max_workers=4):
-#     results = []
-#     # Use ThreadPoolExecutor for parallel processing
-#     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-#         # Submit tasks to the executor
-#         future_to_req = {executor.submit(extract_responses, req, resume, llm): req for req in requirements_cleaned}
-#         # Gather the results as tasks are completed
-#         for future in as_completed(future_to_req):
-#             try:
-#                 quest, resp = future.result()
-#                 results.append((quest, resp))
-#             except Exception as exc:
-#                 print(f'Error occurred: {exc}')
-#     return results
 
 
 def save_to_mongo(db_name:str, collection_name:str, data:dict):
