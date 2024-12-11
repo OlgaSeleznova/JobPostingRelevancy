@@ -18,4 +18,4 @@ Job Posting Relevance Analyzer is an AI-powered tool designed to determine how r
 
 ## Use
 
-`python main.py`
+`streamlit run app.py`

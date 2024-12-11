@@ -54,7 +54,6 @@ def main():
                             unique_index=indId)
             # resp_df = pd.DataFrame(list(zip(list(all_responses.values()), [req.page_content for req in requirement_docs])), 
             #                         columns=["responses","requirement"])
-            # if resp_df is not None:
             st.markdown("## Results")
             resp_match, resp_miss, result = utils.relevancy_metric(all_responses)
             st.markdown(f" #### Resume is {result} % relevant  for this job posting")
